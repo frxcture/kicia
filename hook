@@ -1,3 +1,60 @@
+do
+    local loadinggate = {
+        Enabled = true,
+        MaxWait = 90,        
+        ClearConfirmTime = 0.35, 
+    }
+
+    if loadinggate.Enabled then
+        if not game:IsLoaded() then
+            game.Loaded:Wait()
+        end
+
+        local players  = game:GetService("Players")
+        local lighting = game:GetService("Lighting")
+        local lp = players.LocalPlayer
+
+        while not lp do
+            players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+            lp = players.LocalPlayer
+        end
+
+        local playergui  = lp:WaitForChild("PlayerGui", 30)
+        local starttime  = os.clock()
+        local sawloading = false
+        local clearstarted = nil
+
+        local function hasgameloadingscreen()
+            local loadinggui  = playergui and playergui:FindFirstChild("LoadingScreen", true)
+            local loadingblur = lighting:FindFirstChild("LoadingScreen")
+            return loadinggui ~= nil or loadingblur ~= nil
+        end
+
+        while os.clock() - starttime < loadinggate.MaxWait do
+            local loadingvisible = hasgameloadingscreen()
+
+            if loadingvisible then
+                sawloading = true
+                clearstarted = nil
+            else
+                if not sawloading then
+                    break 
+                end
+
+                if not clearstarted then
+                    clearstarted = os.clock()
+                end
+
+                if os.clock() - clearstarted >= loadinggate.ClearConfirmTime then
+                    break 
+                end
+            end
+
+            task.wait(0.1)
+        end
+    end
+end
+
 if getgenv().KiciaRebuild and getgenv().KiciaRebuild.Unload then
     pcall(getgenv().KiciaRebuild.Unload)
 end
