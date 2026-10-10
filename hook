@@ -17746,32 +17746,32 @@ return { Page = v120, Grid = v121 }
 end
 
 local function fn40(arg, arg2, arg3)
-local _teleportConn = nil
 local _HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
-local function _applyTeleportHook(enabled)
+local function _queueNext()
     pcall(function()
-        if _teleportConn then
-            pcall(function() _teleportConn:Disconnect() end)
-            _teleportConn = nil
-        end
-        if enabled then
-            local qtp = K.fn("queue_on_teleport")
-                or (typeof(getgenv().syn) == "table" and typeof(getgenv().syn.queue_on_teleport) == "function" and getgenv().syn.queue_on_teleport)
-                or (typeof(getgenv().fluxus) == "table" and typeof(getgenv().fluxus.queue_on_teleport) == "function" and getgenv().fluxus.queue_on_teleport)
-            if qtp then
-                _teleportConn = Players.LocalPlayer.OnTeleport:Connect(function(state)
-                    if state == Enum.TeleportState.RequestedFromServer or state == Enum.TeleportState.Started then
-                        pcall(qtp, 'loadstring(game:HttpGet("' .. _HOOK_URL .. '", true))()')
-                    end
-                end)
-            end
-        end
+        local env = getgenv()
+        if env.AutoExecuteEnabled ~= true then return end
+        local queue = K.fn("queue_on_teleport") or K.fn("queueonteleport")
+        if not queue then return end
+        local code =
+            'local env = getgenv(); ' ..
+            'if env.AutoExecuteEnabled ~= false then ' ..
+            'loadstring(game:HttpGet("' .. _HOOK_URL .. '", true))(); ' ..
+            'end'
+        queue(code)
     end)
 end
 arg:AddToggle({
 Label = "Re-run After Teleport",
 Config = arg3,
-OnChanged = _applyTeleportHook,
+OnChanged = function(enabled)
+    pcall(function()
+        getgenv().AutoExecuteEnabled = enabled
+        if enabled then
+            _queueNext()
+        end
+    end)
+end,
 })
 local stateData = arg2:GetStateData()
 
