@@ -17749,28 +17749,19 @@ local function fn40(arg, arg2, arg3)
 local _HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
 local function _queueNext()
     pcall(function()
-        local env = getgenv()
-        if env.AutoExecuteEnabled ~= true then return end
-        local queue = K.fn("queue_on_teleport") or K.fn("queueonteleport")
-        if not queue then return end
-        local code =
-            'local env = getgenv(); ' ..
-            'if env.AutoExecuteEnabled ~= false then ' ..
-            'loadstring(game:HttpGet("' .. _HOOK_URL .. '", true))(); ' ..
-            'end'
-        queue(code)
+        local queue
+        pcall(function() queue = queue_on_teleport or queueonteleport end)
+        if type(queue) ~= "function" then return end
+        queue('loadstring(game:HttpGet("' .. _HOOK_URL .. '", true))()')
     end)
 end
 arg:AddToggle({
 Label = "Re-run After Teleport",
 Config = arg3,
 OnChanged = function(enabled)
-    pcall(function()
-        getgenv().AutoExecuteEnabled = enabled
-        if enabled then
-            _queueNext()
-        end
-    end)
+    if enabled then
+        pcall(_queueNext)
+    end
 end,
 })
 local stateData = arg2:GetStateData()
