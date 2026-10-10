@@ -17746,27 +17746,32 @@ return { Page = v120, Grid = v121 }
 end
 
 local function fn40(arg, arg2, arg3)
-arg:AddToggle({
-Label = "Re-run After Teleport",
-Config = arg3,
-OnChanged = function(enabled)
+local _teleportConn = nil
+local _HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
+local function _applyTeleportHook(enabled)
     pcall(function()
-        local HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
-        local AUTOEXEC_FILE = "autoexec/KiciaRebuild.lua"
+        if _teleportConn then
+            pcall(function() _teleportConn:Disconnect() end)
+            _teleportConn = nil
+        end
         if enabled then
-            if type(isfolder) == "function" and not isfolder("autoexec") then
-                pcall(makefolder, "autoexec")
-            end
-            if type(writefile) == "function" then
-                writefile(AUTOEXEC_FILE, 'loadstring(game:HttpGet("' .. HOOK_URL .. '", true))()')
-            end
-        else
-            if type(isfile) == "function" and isfile(AUTOEXEC_FILE) and type(delfile) == "function" then
-                delfile(AUTOEXEC_FILE)
+            local qtp = K.fn("queue_on_teleport")
+                or (typeof(getgenv().syn) == "table" and typeof(getgenv().syn.queue_on_teleport) == "function" and getgenv().syn.queue_on_teleport)
+                or (typeof(getgenv().fluxus) == "table" and typeof(getgenv().fluxus.queue_on_teleport) == "function" and getgenv().fluxus.queue_on_teleport)
+            if qtp then
+                _teleportConn = Players.LocalPlayer.OnTeleport:Connect(function(state)
+                    if state == Enum.TeleportState.RequestedFromServer or state == Enum.TeleportState.Started then
+                        pcall(qtp, 'loadstring(game:HttpGet("' .. _HOOK_URL .. '", true))()')
+                    end
+                end)
             end
         end
     end)
-end,
+end
+arg:AddToggle({
+Label = "Re-run After Teleport",
+Config = arg3,
+OnChanged = _applyTeleportHook,
 })
 local stateData = arg2:GetStateData()
 
