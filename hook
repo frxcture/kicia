@@ -17746,7 +17746,28 @@ return { Page = v120, Grid = v121 }
 end
 
 local function fn40(arg, arg2, arg3)
-arg:AddToggle({ Label = "Re-run After Teleport", Config = arg3 })
+arg:AddToggle({
+Label = "Re-run After Teleport",
+Config = arg3,
+OnChanged = function(enabled)
+    pcall(function()
+        local HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
+        local AUTOEXEC_FILE = "autoexec/KiciaRebuild.lua"
+        if enabled then
+            if type(isfolder) == "function" and not isfolder("autoexec") then
+                pcall(makefolder, "autoexec")
+            end
+            if type(writefile) == "function" then
+                writefile(AUTOEXEC_FILE, 'loadstring(game:HttpGet("' .. HOOK_URL .. '", true))()')
+            end
+        else
+            if type(isfile) == "function" and isfile(AUTOEXEC_FILE) and type(delfile) == "function" then
+                delfile(AUTOEXEC_FILE)
+            end
+        end
+    end)
+end,
+})
 local stateData = arg2:GetStateData()
 
 arg:AddToggle({
@@ -66302,19 +66323,3 @@ function K.Unload()
 end
 
 tbl17.j1()(boot)
-
--- Write hook to autoexec so it fires automatically on every rejoin
-pcall(function()
-    local HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
-    local AUTOEXEC_FILE = "autoexec/KiciaRebuild.lua"
-    local loader = 'loadstring(game:HttpGet("' .. HOOK_URL .. '", true))()'
-
-    -- makefolder / isfolder / writefile are executor globals
-    if type(isfolder) == "function" and not isfolder("autoexec") then
-        pcall(makefolder, "autoexec")
-    end
-
-    if type(writefile) == "function" then
-        writefile(AUTOEXEC_FILE, loader)
-    end
-end)
