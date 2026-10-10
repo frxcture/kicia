@@ -9467,7 +9467,7 @@ uiPadding.PaddingRight = UDim.new(0, v86[175])
 uiPadding.PaddingLeft = UDim.new(0, 1)
 uiPadding.Parent = instance
 arg._rt = { Outline = frame, Input = instance }
-local tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, v86[186], false, 0)
+local _tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, v86[186], false, 0)
 
 local function fn36(arg3)
 -- Frame is already full-width; just reset text size to default
@@ -17776,8 +17776,8 @@ OnChanged = function(enabled)
 end,
 })
 -- If OnChanged didn't fire on init (config restore), check after one tick
-spawn(function()
-    wait()
+task.spawn(function()
+    task.wait()
     if _enabled or (_toggle ~= nil and _toggle.Value == true) then
         pcall(_queueNext)
     end
