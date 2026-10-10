@@ -1,4 +1,12 @@
-do
+if not game:IsLoaded() then
+    local conn
+    conn = game.Loaded:Connect(function()
+        conn:Disconnect()
+    end)
+    task.wait(30)
+    if conn.Connected then conn:Disconnect() end
+end
+task.wait(1)
     local loadinggate = {
         Enabled = true,
         MaxWait = 90,        
@@ -53,7 +61,6 @@ do
             task.wait(0.1)
         end
     end
-end
 
 if getgenv().KiciaRebuild and getgenv().KiciaRebuild.Unload then
     pcall(getgenv().KiciaRebuild.Unload)
