@@ -17747,23 +17747,41 @@ end
 
 local function fn40(arg, arg2, arg3)
 local _HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
+local _enabled = false
 local function _queueNext()
     pcall(function()
-        local queue
-        pcall(function() queue = queue_on_teleport or queueonteleport end)
-        if type(queue) ~= "function" then return end
-        queue('loadstring(game:HttpGet("' .. _HOOK_URL .. '", true))()')
+        local q
+        pcall(function() q = queue_on_teleport end)
+        if type(q) ~= "function" then
+            pcall(function() q = queueonteleport end)
+        end
+        if type(q) ~= "function" then
+            pcall(function()
+                local env = getgenv()
+                q = env.queue_on_teleport or env.queueonteleport
+            end)
+        end
+        if type(q) ~= "function" then return end
+        q('loadstring(game:HttpGet("' .. _HOOK_URL .. '", true))()')
     end)
 end
-arg:AddToggle({
+local _toggle = arg:AddToggle({
 Label = "Re-run After Teleport",
 Config = arg3,
 OnChanged = function(enabled)
+    _enabled = enabled
     if enabled then
         pcall(_queueNext)
     end
 end,
 })
+-- If OnChanged didn't fire on init (config restore), check after one tick
+spawn(function()
+    wait()
+    if _enabled or (_toggle ~= nil and _toggle.Value == true) then
+        pcall(_queueNext)
+    end
+end)
 local stateData = arg2:GetStateData()
 
 arg:AddToggle({
@@ -22853,14 +22871,49 @@ local GuiNameSpoofer = v115.new("player_spoofer.GuiNameSpoofer")
 local tbl18 = {}
 local tbl19 = {}
 local playerIdentities = arg._playerIdentities
-local function fn36(...) end
+local function fn36(...)
+    table.clear(tbl19)
+    for _, player in _v117:GetPlayers() do
+        table.insert(tbl19, {Player=player, Kind="Name", Name=player.Name})
+        table.insert(tbl19, {Player=player, Kind="DisplayName", Name=player.DisplayName})
+    end
+end
 local function fn37(I,W)if W=="Name"then return  playerIdentities :GetPresented(I);end;return  playerIdentities :GetPresentedDisplay(I);end
 local function fn38(l,I,W)local N,P,a={},1,0;while true do local e,c=l:find(I,P,true);if e==nil or c==nil then break;end;if P<e then table.insert(N,l:sub(P,e-1));end;table.insert(N,W);a+=1;P=c+1;end;if a==0 then return l,0;end;if P<=#l then table.insert(N,l:sub(P));end;return table.concat(N),a;end
 local function _fn39(I)local W={};local N=I;for I,P in  tbl19 ,nil,nil do I= fn37 (P.Player,P.Kind);local a,e= fn38 (N,P.Name,I);if e>0 then W[P.Player]=true;N=a;end;end;return W,N;end
-local function fn40(...) end
-local function fn41(...) end
+local function fn40(k)
+    local entry = tbl18[k]
+    if entry == nil then return end
+    local originalText
+    if entry.Tracked ~= nil and k.Text == entry.Tracked.SpoofedText then
+        originalText = entry.Tracked.OriginalText
+    else
+        originalText = k.Text
+    end
+    local playerSet, newText = _fn39(originalText)
+    entry.Tracked = {OriginalText = originalText, SpoofedText = newText, PlayerSet = playerSet}
+    if k.Text ~= newText then
+        k.Text = newText
+    end
+end
+local function fn41(I, tracked)
+    if tracked ~= nil and I.Text == tracked.SpoofedText then
+        I.Text = tracked.OriginalText
+    end
+end
 local function _fn42(I,W)local N= tbl18 [I];if N==nil then return;end; tbl18 [I]=nil;N.TextChangedConnection:Disconnect();N.DestroyingConnection:Disconnect();if W and N.Tracked~=nil then  fn41 (I,N.Tracked);end;end
-local function fn43(...) end
+local function fn43(textObj)
+    if tbl18[textObj] ~= nil then return end
+    local entry = {Tracked = nil}
+    entry.TextChangedConnection = textObj:GetPropertyChangedSignal("Text"):Connect(function()
+        fn40(textObj)
+    end)
+    entry.DestroyingConnection = textObj.Destroying:Connect(function()
+        _fn42(textObj, false)
+    end)
+    tbl18[textObj] = entry
+    fn40(textObj)
+end
 fn36()
 
 v116(GuiNameSpoofer, function(arg2, arg3)
@@ -23964,10 +24017,47 @@ return
 end
 local GuiThumbnailSpoofer = v115.new("player_spoofer.GuiThumbnailSpoofer")
 local tbl18 = {}
-local function fn37(...) end
-local function fn38(...) end
+local function fn37(I)
+    local entry = tbl18[I]
+    if entry == nil then return end
+    local currentImage = I.Image
+    -- If image is our spoofed image, use original as base; otherwise update original
+    if entry.SpoofedImage ~= nil and currentImage == entry.SpoofedImage then
+        currentImage = entry.OriginalImage or currentImage
+    else
+        entry.OriginalImage = currentImage
+    end
+    local spoofed = _fn36(currentImage, arg._spoofsByUserId)
+    entry.SpoofedImage = spoofed
+    if spoofed ~= nil then
+        if I.Image ~= spoofed then
+            I.Image = spoofed
+        end
+    elseif entry.OriginalImage ~= nil and I.Image ~= entry.OriginalImage then
+        I.Image = entry.OriginalImage
+    end
+end
+local function fn38(I, entry)
+    if entry ~= nil and entry.OriginalImage ~= nil and I.Image == entry.SpoofedImage then
+        I.Image = entry.OriginalImage
+    end
+end
 local function _fn39(I,W)local N= tbl18 [I];if N==nil then return;end; tbl18 [I]=nil;N.ImageChangedConnection:Disconnect();N.DestroyingConnection:Disconnect();if W then  fn38 (I,N);end;end
-local function fn40(...) end
+local function fn40(imageObj)
+    if tbl18[imageObj] ~= nil then return end
+    local entry = {OriginalImage = nil, SpoofedImage = nil}
+    entry.ImageChangedConnection = imageObj:GetPropertyChangedSignal("Image"):Connect(function()
+        local current = imageObj.Image
+        if entry.SpoofedImage ~= nil and current == entry.SpoofedImage then return end
+        entry.OriginalImage = current
+        fn37(imageObj)
+    end)
+    entry.DestroyingConnection = imageObj.Destroying:Connect(function()
+        _fn39(imageObj, false)
+    end)
+    tbl18[imageObj] = entry
+    fn37(imageObj)
+end
 
 arg._loaded = {
 Trove = GuiThumbnailSpoofer,
