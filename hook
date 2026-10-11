@@ -844,8 +844,14 @@ local cloneref = K.fn("cloneref") or function(x) return x end
 local gethui = K.fn("gethui") or function() return game:GetService("CoreGui") end
 local _KiciaGetId = K.fn("getthreadidentity") or K.fn("getidentity")
 local _KiciaSetId = K.fn("setthreadidentity") or K.fn("setidentity")
+local _KiciaIsTouch = false
+do
+local _ok, _uis = pcall(function() return game:GetService("UserInputService") end)
+_KiciaIsTouch = _ok and _uis.TouchEnabled and not _uis.KeyboardEnabled or false
+end
 local getthreadidentity = _KiciaGetId or function() return 8 end
-local setthreadidentity = (_KiciaGetId and _KiciaSetId) and _KiciaSetId or function() end
+local _KiciaCanSet = _KiciaSetId ~= nil and (_KiciaGetId ~= nil or not _KiciaIsTouch)
+local setthreadidentity = _KiciaCanSet and _KiciaSetId or function() end
 local function clonefn(f)
     local c = K.fn("clonefunction")
     if c and f then
@@ -18482,23 +18488,19 @@ if typeof(v142) == "EnumItem" then
 obj.Keybind = v142
 end
 
-local _getId = K.fn("getthreadidentity") or K.fn("getidentity")
-local _setId = K.fn("setthreadidentity") or K.fn("setidentity")
-local _oldId = _getId and _getId() or nil
-local _guiTarget = gethui()
-local _elevated = false
-if _guiTarget == game:GetService("CoreGui") and _setId and _oldId ~= nil then
-pcall(_setId, 8)
-_elevated = true
-end
-
+local v143 = getthreadidentity()
+if _KiciaIsTouch then
 for _, v144 in { v137, v138, v139 }, nil, nil do
 v136:Add(v144)
-v144.Parent = _guiTarget
+v144.Parent = gethui()
 end
-
-if _elevated then
-pcall(_setId, _oldId)
+else
+setthreadidentity(8)
+for _, v144 in { v137, v138, v139 }, nil, nil do
+v136:Add(v144)
+v144.Parent = v126.CoreGui
+end
+setthreadidentity(v143)
 end
 local tbl18 = { Title = obj.Title, Icon = obj.Icon, Username = obj._watermarkUsername }
 
