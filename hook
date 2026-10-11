@@ -1,12 +1,8 @@
 if not game:IsLoaded() then
-    local conn
-    conn = game.Loaded:Connect(function()
-        conn:Disconnect()
-    end)
-    task.wait(30)
-    if conn.Connected then conn:Disconnect() end
+    local deadline = os.clock() + 30
+    repeat task.wait(0.1) until game:IsLoaded() or os.clock() >= deadline
 end
-task.wait(1)
+task.wait()
     local loadinggate = {
         Enabled = true,
         MaxWait = 90,        
@@ -14,10 +10,6 @@ task.wait(1)
     }
 
     if loadinggate.Enabled then
-        if not game:IsLoaded() then
-            game.Loaded:Wait()
-        end
-
         local players  = game:GetService("Players")
         local lighting = game:GetService("Lighting")
         local lp = players.LocalPlayer
@@ -28,15 +20,24 @@ task.wait(1)
         end
 
         local playergui  = lp:WaitForChild("PlayerGui", 30)
-        local starttime  = os.clock()
-        local sawloading = false
-        local clearstarted = nil
+        local rs = game:GetService("ReplicatedStorage")
+
+        local function shown(o)
+            if not o then return false end
+            if o:IsA("GuiObject") then return o.Visible end
+            return o.Enabled ~= false
+        end
 
         local function hasgameloadingscreen()
-            local loadinggui  = playergui and playergui:FindFirstChild("LoadingScreen", true)
-            local loadingblur = lighting:FindFirstChild("LoadingScreen")
-            return loadinggui ~= nil or loadingblur ~= nil
+            return shown(playergui and playergui:FindFirstChild("LoadingScreen", true))
+                or shown(lighting:FindFirstChild("LoadingScreen"))
         end
+
+        if not rs:FindFirstChild("Modules") then rs:WaitForChild("Modules", 30) end
+
+        local starttime = os.clock()
+        local sawloading = false
+        local clearstarted = nil
 
         while os.clock() - starttime < loadinggate.MaxWait do
             local loadingvisible = hasgameloadingscreen()
@@ -65,7 +66,10 @@ task.wait(1)
 if getgenv().KiciaRebuild and getgenv().KiciaRebuild.Unload then
     pcall(getgenv().KiciaRebuild.Unload)
 end
-if not game:IsLoaded() then game.Loaded:Wait() end
+if not game:IsLoaded() then
+    local deadline = os.clock() + 30
+    repeat task.wait(0.1) until game:IsLoaded() or os.clock() >= deadline
+end
 
 local K: { [string]: any } = { connections = {}, cleanups = {}, destroyed = false }
 getgenv().KiciaRebuild = K
