@@ -527,10 +527,10 @@ local setthreadidentity_ = K.fn("setthreadidentity") or K.fn("setidentity")
 local _sethiddenproperty = K.fn("sethiddenproperty")
 local gethui_ = K.fn("gethui")
 local function identity(n)
-    if not setthreadidentity_ then return function() end end
-    local old = getthreadidentity_ and getthreadidentity_() or nil
+    if not setthreadidentity_ or not getthreadidentity_ then return function() end end
+    local old = getthreadidentity_()
     pcall(setthreadidentity_, n)
-    return function() if old then pcall(setthreadidentity_, old) end end
+    return function() if old ~= nil then pcall(setthreadidentity_, old) end end
 end
 K.identity = identity
 local function hudParent()
@@ -842,8 +842,10 @@ local flag2, flag3 = true, true
 local function n29(...) return 0 end
 local cloneref = K.fn("cloneref") or function(x) return x end
 local gethui = K.fn("gethui") or function() return game:GetService("CoreGui") end
-local getthreadidentity = K.fn("getthreadidentity") or K.fn("getidentity") or function() return 8 end
-local setthreadidentity = K.fn("setthreadidentity") or K.fn("setidentity") or function() end
+local _KiciaGetId = K.fn("getthreadidentity") or K.fn("getidentity")
+local _KiciaSetId = K.fn("setthreadidentity") or K.fn("setidentity")
+local getthreadidentity = _KiciaGetId or function() return 8 end
+local setthreadidentity = (_KiciaGetId and _KiciaSetId) and _KiciaSetId or function() end
 local function clonefn(f)
     local c = K.fn("clonefunction")
     if c and f then
@@ -18480,15 +18482,24 @@ if typeof(v142) == "EnumItem" then
 obj.Keybind = v142
 end
 
-local v143 = getthreadidentity()
-setthreadidentity(8)
+local _getId = K.fn("getthreadidentity") or K.fn("getidentity")
+local _setId = K.fn("setthreadidentity") or K.fn("setidentity")
+local _oldId = _getId and _getId() or nil
+local _guiTarget = gethui()
+local _elevated = false
+if _guiTarget == game:GetService("CoreGui") and _setId and _oldId ~= nil then
+pcall(_setId, 8)
+_elevated = true
+end
 
 for _, v144 in { v137, v138, v139 }, nil, nil do
 v136:Add(v144)
-v144.Parent = v126.CoreGui
+v144.Parent = _guiTarget
 end
 
-setthreadidentity(v143)
+if _elevated then
+pcall(_setId, _oldId)
+end
 local tbl18 = { Title = obj.Title, Icon = obj.Icon, Username = obj._watermarkUsername }
 
 obj._chrome = {
@@ -34277,18 +34288,28 @@ end
 arg:_Revert()
 end
 
-v103(arg2, "Data", setmetatable({}, {
+local proxy = {}
+for k, v in next, arg3, nil do
+proxy[k] = v
+end
+for k in next, arg._spoofedDataByField, nil do
+proxy[k] = nil
+end
+setmetatable(proxy, {
 __index = function(_, key)
 local spoofed = arg._spoofedDataByField[key]
 if type(spoofed) == "function" then return spoofed() end
 if spoofed ~= nil then return spoofed end
 return v102(arg3, key)
 end,
-__newindex = function(arg4, arg5, arg6)
-v103(arg3, arg5, arg6)
+__newindex = function(_, key, value)
+v103(arg3, key, value)
+v103(proxy, key, value)
 end,
-}))
+})
 
+v103(arg2, "Data", proxy)
+arg._proxy = proxy
 arg._restore = { Current = arg2, Inner = arg3 }
 end
 
@@ -34298,16 +34319,24 @@ if restore == nil then
 return
 end
 arg._restore = nil
+arg._proxy = nil
 v103(restore.Current, "Data", restore.Inner)
 end
 
 index2.Set = function(arg, arg2, arg3)
 arg._spoofedDataByField[arg2] = arg3
 arg:_Initialize()
+if arg._proxy ~= nil then
+v103(arg._proxy, arg2, nil)
+end
 end
 
 index2.Unset = function(arg, arg2)
 arg._spoofedDataByField[arg2] = nil
+local restore = arg._restore
+if arg._proxy ~= nil and restore ~= nil then
+v103(arg._proxy, arg2, v102(restore.Inner, arg2))
+end
 end
 
 index2.GetOriginal = function(arg, arg2)
