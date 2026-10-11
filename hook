@@ -44,7 +44,6 @@ pcall(function()
     local LocalPlayer = Players.LocalPlayer
     feErrorSignal = ScriptContext.Error
 
-
     local ac_script = ReplicatedFirst:FindFirstChild("LocalScript3")
     if not ac_script and not game:IsLoaded() then
         ac_script = ReplicatedFirst:WaitForChild("LocalScript3", 8)
@@ -408,7 +407,6 @@ pcall(function()
     end
 end)
 
-
 if hookmetamethod and newcclosure and checkcaller and getgenv().KiciaEnableNamecallHook == true then
     feOldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local method = getnamecallmethod()
@@ -500,60 +498,7 @@ end)
 if getgenv().KiciaRebuild and getgenv().KiciaRebuild.Unload then
     pcall(getgenv().KiciaRebuild.Unload)
 end
-
-do
-    local _guardPlayers = game:GetService("Players")
-
-    if not game:IsLoaded() then game.Loaded:Wait() end
-
-    pcall(function()
-        local _replicatedFirst = game:GetService("ReplicatedFirst")
-        if type(_replicatedFirst.IsFinishedReplicating) == "function" then
-            local _replicationDeadline = os.clock() + 30
-            while not _replicatedFirst:IsFinishedReplicating() and os.clock() < _replicationDeadline do
-                task.wait(0.1)
-            end
-        end
-    end)
-
-    pcall(function()
-        local _guardLocalPlayer = _guardPlayers.LocalPlayer
-        if _guardLocalPlayer == nil then
-            repeat task.wait(0.1) until _guardPlayers.LocalPlayer ~= nil
-            _guardLocalPlayer = _guardPlayers.LocalPlayer
-        end
-
-        local _characterDeadline = os.clock() + 60
-        while os.clock() < _characterDeadline do
-            local _character = _guardLocalPlayer.Character
-            local _humanoid = _character ~= nil and _character:FindFirstChildOfClass("Humanoid") or nil
-            local _rootPart = _character ~= nil and _character:FindFirstChild("HumanoidRootPart") or nil
-            if _humanoid ~= nil and _rootPart ~= nil and _humanoid.Health > 0 then
-                break
-            end
-            task.wait(0.1)
-        end
-
-        local _playerGui = _guardLocalPlayer:WaitForChild("PlayerGui", 30)
-        if _playerGui ~= nil then
-            local _loadingDeadline = os.clock() + 30
-            while os.clock() < _loadingDeadline do
-                local _loadingVisible = false
-                for _, _gui in ipairs(_playerGui:GetChildren()) do
-                    if _gui:IsA("ScreenGui") and _gui.Enabled and string.find(string.lower(_gui.Name), "loading", 1, true) then
-                        _loadingVisible = true
-                        break
-                    end
-                end
-                if not _loadingVisible then break end
-                task.wait(0.25)
-            end
-        end
-    end)
-
-    task.wait(2)
-end
-
+if not game:IsLoaded() then game.Loaded:Wait() end
 
 local K: { [string]: any } = { connections = {}, cleanups = {}, destroyed = false }
 getgenv().KiciaRebuild = K
@@ -6298,15 +6243,10 @@ arg5.RemoveStop()
 end)
 
 local function repaint(arg6)
-
     frame7.Position = UDim2.fromScale(arg3.Sat, 1 - arg3.Val)
-
     instance8.Position = UDim2.new(0.5, 0, arg3.Hue, 0)
-
     frame14.Position = UDim2.new(0.5, 0, arg3.Alpha, 0)
-
     frame4.BackgroundColor3 = Color3.fromHSV(arg3.Hue, 1, 1)
-
     _fn42(arg6)
 end
 tbl22.Repaint = repaint
@@ -10022,7 +9962,6 @@ arg._rt = { Outline = frame, Input = instance }
 local _tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, v86[186], false, 0)
 
 local function fn36(arg3)
-
 instance.TextSize = v86[13]
 end
 
@@ -18298,85 +18237,29 @@ end
 return { Page = v120, Grid = v121 }
 end
 
-local function fn40(arg, arg2, arg3)
-local _HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
-local _enabled = false
-
-local _LOAD_GUARD = [[
-if not game:IsLoaded() then game.Loaded:Wait() end
-pcall(function()
-    local rf = game:GetService("ReplicatedFirst")
-    if type(rf.IsFinishedReplicating) == "function" then
-        local t = os.clock() + 30
-        while not rf:IsFinishedReplicating() and os.clock() < t do task.wait(0.1) end
-    end
-end)
-do
-    local pl = game:GetService("Players")
-    local lp = pl.LocalPlayer
-    if lp == nil then
-        repeat task.wait(0.1) until pl.LocalPlayer ~= nil
-        lp = pl.LocalPlayer
-    end
-    local t = os.clock() + 60
-    while os.clock() < t do
-        local c = lp.Character
-        local h = c ~= nil and c:FindFirstChildOfClass("Humanoid") or nil
-        local r = c ~= nil and c:FindFirstChild("HumanoidRootPart") or nil
-        if h ~= nil and r ~= nil and h.Health > 0 then break end
-        task.wait(0.1)
-    end
-    local pg = lp:WaitForChild("PlayerGui", 30)
-    if pg ~= nil then
-        local d = os.clock() + 30
-        while os.clock() < d do
-            local busy = false
-            for _, g in ipairs(pg:GetChildren()) do
-                if g:IsA("ScreenGui") and g.Enabled and string.find(string.lower(g.Name), "loading", 1, true) then
-                    busy = true
-                    break
-                end
+local function KiciaQueueTeleport()
+    local queueFn = K.fn("queue_on_teleport") or K.fn("queueonteleport")
+    if type(queueFn) ~= "function" then return end
+    local best, bestLen = nil, -1
+    for level = 0, 40 do
+        local ok, info = pcall(debug.getinfo, level, "S")
+        if not ok or type(info) ~= "table" then break end
+        local source = info.source or info.short_src or ""
+        if type(source) == "string" and source:sub(1, 1) == "@" then
+            local ok2, content = pcall(readfile, source:sub(2))
+            if ok2 and type(content) == "string" and #content > bestLen then
+                best, bestLen = content, #content
             end
-            if not busy then break end
-            task.wait(0.25)
         end
     end
+    if best ~= nil then pcall(queueFn, best) end
 end
-task.wait(2)
-]]
-local function _queueNext()
-    pcall(function()
-        local q
-        pcall(function() q = queue_on_teleport end)
-        if type(q) ~= "function" then
-            pcall(function() q = queueonteleport end)
-        end
-        if type(q) ~= "function" then
-            pcall(function()
-                local env = getgenv()
-                q = env.queue_on_teleport or env.queueonteleport
-            end)
-        end
-        if type(q) ~= "function" then return end
-        q(_LOAD_GUARD .. '\nloadstring(game:HttpGet("' .. _HOOK_URL .. '", true))()')
-    end)
-end
-local _toggle = arg:AddToggle({
-Label = "Re-run After Teleport",
-Config = arg3,
-OnChanged = function(enabled)
-    _enabled = enabled
-    if enabled then
-        pcall(_queueNext)
-    end
-end,
-})
 
-task.spawn(function()
-    task.wait()
-    if _enabled or (_toggle ~= nil and _toggle.Value == true) then
-        pcall(_queueNext)
-    end
+local function fn40(arg, arg2, arg3)
+local _toggle = arg:AddToggle({ Label = "Re-run After Teleport", Config = arg3 })
+pcall(function() _toggle:OnChanged(function(v) if v then KiciaQueueTeleport() end end) end)
+pcall(function()
+if arg2:GetConfig():Get(arg3) then KiciaQueueTeleport() end
 end)
 local stateData = arg2:GetStateData()
 
@@ -24617,7 +24500,6 @@ local function fn37(I)
     local entry = tbl18[I]
     if entry == nil then return end
     local currentImage = I.Image
-
     if entry.SpoofedImage ~= nil and currentImage == entry.SpoofedImage then
         currentImage = entry.OriginalImage or currentImage
     else
@@ -66979,7 +66861,7 @@ tbl17.b().use({ Report = function(_, e)
     warn("[Kicia Rebuild] " .. tostring(detail))
 end })
 
-local boot = (function()
+local bootFn = function()
     local store = tbl17.bG()
     local profiles = GlobalTrove:Add(tbl17.bN().new(store))
     store:UseMiddleware(profiles)
@@ -67028,7 +66910,7 @@ local boot = (function()
         GeneralState = state,
         GeneralStateData = stateData,
     }
-end)()
+end
 
 function K.Unload()
     if K.destroyed then return end
@@ -67042,4 +66924,65 @@ function K.Unload()
     if getgenv().KiciaRebuild == K then getgenv().KiciaRebuild = nil end
 end
 
-tbl17.j1()(boot)
+task.spawn(function()
+    local _players = game:GetService("Players")
+    local _waitStart = os.clock()
+    while not _players.LocalPlayer and os.clock() - _waitStart < 60 do
+        task.wait()
+    end
+    local _lp = _players.LocalPlayer
+    if not _lp then
+        warn("[Kicia Rebuild] ABORTED: no LocalPlayer after 60s")
+        return
+    end
+
+    local _playerScripts = _lp:FindFirstChild("PlayerScripts")
+    if not _playerScripts then
+        pcall(function() _lp:WaitForChild("PlayerScripts", 60) end)
+        _playerScripts = _lp:FindFirstChild("PlayerScripts")
+    end
+    if not _playerScripts then
+        warn("[Kicia Rebuild] ABORTED: no PlayerScripts")
+        return
+    end
+
+    if not _playerScripts:FindFirstChild("Controllers") then
+        pcall(function() _playerScripts:WaitForChild("Controllers", 60) end)
+    end
+
+    local _uis = game:GetService("UserInputService")
+    local _touch = _uis.TouchEnabled and not _uis.KeyboardEnabled
+    local _minScreenGuis = _touch and 1 or 2
+
+    local _aliveStart = os.clock()
+    while os.clock() - _aliveStart < 45 do
+        local _character = _lp.Character
+        local _playerGui = _lp:FindFirstChild("PlayerGui")
+        local _spawnedOk = _character ~= nil and _character:FindFirstChildOfClass("Humanoid") ~= nil
+        local _uiOk = false
+        if _playerGui then
+            local _screenGuiCount = 0
+            for _, _child in ipairs(_playerGui:GetChildren()) do
+                if _child:IsA("ScreenGui") then
+                    _screenGuiCount += 1
+                end
+            end
+            _uiOk = _screenGuiCount >= _minScreenGuis
+        end
+        if _spawnedOk and _uiOk then
+            break
+        end
+        task.wait(1)
+    end
+
+    tbl17.j1()(bootFn())
+
+    task.spawn(function()
+        task.wait(60)
+        local _playerGui = _lp:FindFirstChild("PlayerGui")
+        local _loadingScreen = _playerGui and _playerGui:FindFirstChild("LoadingScreen")
+        if _loadingScreen and _loadingScreen:IsA("LayerCollector") and _loadingScreen.Enabled then
+            _loadingScreen.Enabled = false
+        end
+    end)
+end)
