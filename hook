@@ -44,11 +44,15 @@ pcall(function()
     local LocalPlayer = Players.LocalPlayer
     feErrorSignal = ScriptContext.Error
 
-    local ac_script = ReplicatedFirst:FindFirstChild("LocalScript3") or ReplicatedFirst:WaitForChild("LocalScript3", 8)
-    local remotes_folder = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage:WaitForChild("Remotes", 8)
+
+    local ac_script = ReplicatedFirst:FindFirstChild("LocalScript3")
+    if not ac_script and not game:IsLoaded() then
+        ac_script = ReplicatedFirst:WaitForChild("LocalScript3", 8)
+    end
+    local remotes_folder = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage:WaitForChild("Remotes", 3)
     local ac_event = nil
     if remotes_folder then
-        ac_event = remotes_folder:FindFirstChild("RemoteEvent") or remotes_folder:WaitForChild("RemoteEvent", 6)
+        ac_event = remotes_folder:FindFirstChild("RemoteEvent") or remotes_folder:WaitForChild("RemoteEvent", 3)
     end
     feACScript = ac_script
 
@@ -404,7 +408,8 @@ pcall(function()
     end
 end)
 
-if hookmetamethod and newcclosure and checkcaller then
+
+if hookmetamethod and newcclosure and checkcaller and getgenv().KiciaEnableNamecallHook == true then
     feOldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local method = getnamecallmethod()
         if not isRunning or checkcaller() or not method then
@@ -495,7 +500,60 @@ end)
 if getgenv().KiciaRebuild and getgenv().KiciaRebuild.Unload then
     pcall(getgenv().KiciaRebuild.Unload)
 end
-if not game:IsLoaded() then game.Loaded:Wait() end
+
+do
+    local _guardPlayers = game:GetService("Players")
+
+    if not game:IsLoaded() then game.Loaded:Wait() end
+
+    pcall(function()
+        local _replicatedFirst = game:GetService("ReplicatedFirst")
+        if type(_replicatedFirst.IsFinishedReplicating) == "function" then
+            local _replicationDeadline = os.clock() + 30
+            while not _replicatedFirst:IsFinishedReplicating() and os.clock() < _replicationDeadline do
+                task.wait(0.1)
+            end
+        end
+    end)
+
+    pcall(function()
+        local _guardLocalPlayer = _guardPlayers.LocalPlayer
+        if _guardLocalPlayer == nil then
+            repeat task.wait(0.1) until _guardPlayers.LocalPlayer ~= nil
+            _guardLocalPlayer = _guardPlayers.LocalPlayer
+        end
+
+        local _characterDeadline = os.clock() + 60
+        while os.clock() < _characterDeadline do
+            local _character = _guardLocalPlayer.Character
+            local _humanoid = _character ~= nil and _character:FindFirstChildOfClass("Humanoid") or nil
+            local _rootPart = _character ~= nil and _character:FindFirstChild("HumanoidRootPart") or nil
+            if _humanoid ~= nil and _rootPart ~= nil and _humanoid.Health > 0 then
+                break
+            end
+            task.wait(0.1)
+        end
+
+        local _playerGui = _guardLocalPlayer:WaitForChild("PlayerGui", 30)
+        if _playerGui ~= nil then
+            local _loadingDeadline = os.clock() + 30
+            while os.clock() < _loadingDeadline do
+                local _loadingVisible = false
+                for _, _gui in ipairs(_playerGui:GetChildren()) do
+                    if _gui:IsA("ScreenGui") and _gui.Enabled and string.find(string.lower(_gui.Name), "loading", 1, true) then
+                        _loadingVisible = true
+                        break
+                    end
+                end
+                if not _loadingVisible then break end
+                task.wait(0.25)
+            end
+        end
+    end)
+
+    task.wait(2)
+end
+
 
 local K: { [string]: any } = { connections = {}, cleanups = {}, destroyed = false }
 getgenv().KiciaRebuild = K
@@ -2546,7 +2604,7 @@ local background = v115.Background
 
 for _, v116 in tbl20, nil, nil do
 local v117 = v115[v116]
-tbl21[v116] = { R = v117.R / background.R, G = v117.G / background.G, B = v117.B / background.B }
+tbl21[v116] = { R = v117.R - background.R, G = v117.G - background.G, B = v117.B - background.B }
 end
 
 local function fn38(I,W)if  v115 [I]==W then return;end; v115 [I]=W;local N= tbl18 [I];if N==nil then return;end;for P in N,nil,nil do local N_17=P._propBindingsByToken[I];if N_17~=nil then for a,a_18 in N_17,nil,nil do a_18.Instance[a_18.Property]=W;end;end;for a,a_19 in P._gradients,nil,nil do if table.find(a_19.Tokens,I)~=nil then a_19.Gradient.Color= fn36 (a_19.Tokens,a_19.Times);end;end;N_17=P._statefulApplyByToken[I];if N_17~=nil then for l,l_20 in N_17,nil,nil do l_20(W);end;end;end;end
@@ -2554,7 +2612,7 @@ local function fn38(I,W)if  v115 [I]==W then return;end; v115 [I]=W;local N= tbl
 local function fn39(arg)
 for _, v116 in tbl20, nil, nil do
 local v117 = tbl21[v116]
-fn38(v116, Color3.new(math.clamp(arg.R * v117.R, v86[186], 1), math.clamp(arg.G * v117.G, 0, 1), math.clamp(arg.B * v117.B, 0, 1)))
+fn38(v116, Color3.new(math.clamp(arg.R + v117.R, v86[186], 1), math.clamp(arg.G + v117.G, 0, 1), math.clamp(arg.B + v117.B, 0, 1)))
 end
 end
 
@@ -6240,15 +6298,15 @@ arg5.RemoveStop()
 end)
 
 local function repaint(arg6)
-    -- Update sat/val dot position (frame7 in instance5)
+
     frame7.Position = UDim2.fromScale(arg3.Sat, 1 - arg3.Val)
-    -- Update hue slider thumb position (instance8 in frame11)
+
     instance8.Position = UDim2.new(0.5, 0, arg3.Hue, 0)
-    -- Update alpha slider thumb position (frame14 in instance12)
+
     frame14.Position = UDim2.new(0.5, 0, arg3.Alpha, 0)
-    -- Update SV square background to match current hue
+
     frame4.BackgroundColor3 = Color3.fromHSV(arg3.Hue, 1, 1)
-    -- Update gradient stop markers and other UI
+
     _fn42(arg6)
 end
 tbl22.Repaint = repaint
@@ -9964,7 +10022,7 @@ arg._rt = { Outline = frame, Input = instance }
 local _tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, v86[186], false, 0)
 
 local function fn36(arg3)
--- Frame is already full-width; just reset text size to default
+
 instance.TextSize = v86[13]
 end
 
@@ -18243,6 +18301,49 @@ end
 local function fn40(arg, arg2, arg3)
 local _HOOK_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
 local _enabled = false
+
+local _LOAD_GUARD = [[
+if not game:IsLoaded() then game.Loaded:Wait() end
+pcall(function()
+    local rf = game:GetService("ReplicatedFirst")
+    if type(rf.IsFinishedReplicating) == "function" then
+        local t = os.clock() + 30
+        while not rf:IsFinishedReplicating() and os.clock() < t do task.wait(0.1) end
+    end
+end)
+do
+    local pl = game:GetService("Players")
+    local lp = pl.LocalPlayer
+    if lp == nil then
+        repeat task.wait(0.1) until pl.LocalPlayer ~= nil
+        lp = pl.LocalPlayer
+    end
+    local t = os.clock() + 60
+    while os.clock() < t do
+        local c = lp.Character
+        local h = c ~= nil and c:FindFirstChildOfClass("Humanoid") or nil
+        local r = c ~= nil and c:FindFirstChild("HumanoidRootPart") or nil
+        if h ~= nil and r ~= nil and h.Health > 0 then break end
+        task.wait(0.1)
+    end
+    local pg = lp:WaitForChild("PlayerGui", 30)
+    if pg ~= nil then
+        local d = os.clock() + 30
+        while os.clock() < d do
+            local busy = false
+            for _, g in ipairs(pg:GetChildren()) do
+                if g:IsA("ScreenGui") and g.Enabled and string.find(string.lower(g.Name), "loading", 1, true) then
+                    busy = true
+                    break
+                end
+            end
+            if not busy then break end
+            task.wait(0.25)
+        end
+    end
+end
+task.wait(2)
+]]
 local function _queueNext()
     pcall(function()
         local q
@@ -18257,7 +18358,7 @@ local function _queueNext()
             end)
         end
         if type(q) ~= "function" then return end
-        q('loadstring(game:HttpGet("' .. _HOOK_URL .. '", true))()')
+        q(_LOAD_GUARD .. '\nloadstring(game:HttpGet("' .. _HOOK_URL .. '", true))()')
     end)
 end
 local _toggle = arg:AddToggle({
@@ -18270,7 +18371,7 @@ OnChanged = function(enabled)
     end
 end,
 })
--- If OnChanged didn't fire on init (config restore), check after one tick
+
 task.spawn(function()
     task.wait()
     if _enabled or (_toggle ~= nil and _toggle.Value == true) then
@@ -20278,7 +20379,7 @@ return bj.c
 end
 end
 do
-local function fn35() tbl17 .a9();return{ItemModifiers={NoMotion=false,NoCameraShake=false,NoCameraSway=false,NoShootAnimation=false,NoSprintAnimation=false,NoEquipAnimation=false,NoReloadAnimation=false,NoSpread=false,AimCooldown={Enabled=false,Percentage=50},Recoil={Enabled=false,Percentage=75},FireCooldown={Enabled=false,Percentage=25},AimSpeed={Enabled=false,Percentage=300},MeleeCooldown={Enabled=false,Percentage=25},DashCooldown={Enabled=false,Percentage=25},ExtendMeleeRange={Enabled=false,Range=10},AutomaticWeapon=false,InfiniteDoubleJumps=false,AlwaysBackstab=false,GrenadeFuse={Enabled=false,ExplodeOn="Impact",RemoveFuse=false}},BulletTracers={Enabled=false,Color=Color3.fromRGB(120,220,255),Width=0.06,Lifetime=0.6,FadeTime=0.35,Style="Beam",TextureLength=4,TextureSpeed=1,Emission=1,Glow=1,Expand=true,ExpandSpeed=18,ExpandDamper=0.7},ViewModelOffset={Enabled=false,X=0,Y=0,Z=0,Pitch=0,Yaw=0,Roll=0},Chams={Character={Enabled=false,Material="Ghost",Color=Color3.fromRGB(255,255,255),Transparency=0,StripTextures=false},Arms={Enabled=false,Material="Ghost",Color=Color3.fromRGB(255,255,255),Transparency=0,StripTextures=true},Item={Enabled=false,Material="Ghost",Color=Color3.fromRGB(255,255,255),Transparency=0,StripTextures=false}},ViewModelHighlight={Arms={Enabled=false,AlwaysOnTop=false,FillColor=Color3.fromRGB(255,255,255),FillTransparency=0.5,OutlineColor=Color3.fromRGB(255,255,255),OutlineTransparency=0},Item={Enabled=false,AlwaysOnTop=false,FillColor=Color3.fromRGB(255,255,255),FillTransparency=0.5,OutlineColor=Color3.fromRGB(255,255,255),OutlineTransparency=0}},ViewModelWireframe={Arms={Enabled=false,Color=Color3.fromRGB(255,255,255),Width=0.0025},Item={Enabled=false,Color=Color3.fromRGB(255,255,255),Width=0.0025}},PlayerHit={Enabled=false,Sound={Enabled=false,DisableGameSound=false,HeadName=nil,BodyName=nil,HeadVolume=1,HeadPitch=1,BodyVolume=1,BodyPitch=1},Notification={Enabled=false,Text="Hit %DNAME% (%NAME%) for %DMG% in %PART%"},Chams={Enabled=false,Color=Color3.fromRGB(255,0,0),Transparency=0,Duration=0.8,Material="Ghost"},HitFlash={Enabled=false,Color=Color3.fromRGB(90,170,255),Duration=1.35}},PlayerElimination={Enabled=false,Sound={Enabled=false,Name=nil,Volume=1,Pitch=1},Notification={Enabled=false,Text="Eliminated %DNAME% (%NAME%)"},Chams={Enabled=false,Color=Color3.fromRGB(255,0,0),Transparency=0,Duration=0.8,Material="Ghost"},KillFlash={Enabled=false,Color=Color3.fromRGB(90,170,255),Duration=1.35}}};end
+local function fn35() tbl17 .a9();return{ItemModifiers={NoMotion=false,NoCameraShake=false,NoCameraSway=false,NoShootAnimation=false,NoSprintAnimation=false,NoEquipAnimation=false,NoReloadAnimation=false,NoSpread=false,AimCooldown={Enabled=false,Percentage=50},Recoil={Enabled=false,Percentage=75},FireCooldown={Enabled=false,Percentage=25},AimSpeed={Enabled=false,Percentage=300},MeleeCooldown={Enabled=false,Percentage=25},DashCooldown={Enabled=false,Percentage=25},ExtendMeleeRange={Enabled=false,Range=10},AutomaticWeapon=false,InfiniteDoubleJumps=false,AlwaysBackstab=false,FastProjectile=false,GrenadeFuse={Enabled=false,ExplodeOn="Impact",RemoveFuse=false}},BulletTracers={Enabled=false,Color=Color3.fromRGB(120,220,255),Width=0.06,Lifetime=0.6,FadeTime=0.35,Style="Beam",TextureLength=4,TextureSpeed=1,Emission=1,Glow=1,Expand=true,ExpandSpeed=18,ExpandDamper=0.7},ViewModelOffset={Enabled=false,X=0,Y=0,Z=0,Pitch=0,Yaw=0,Roll=0},Chams={Character={Enabled=false,Material="Ghost",Color=Color3.fromRGB(255,255,255),Transparency=0,StripTextures=false},Arms={Enabled=false,Material="Ghost",Color=Color3.fromRGB(255,255,255),Transparency=0,StripTextures=true},Item={Enabled=false,Material="Ghost",Color=Color3.fromRGB(255,255,255),Transparency=0,StripTextures=false}},ViewModelHighlight={Arms={Enabled=false,AlwaysOnTop=false,FillColor=Color3.fromRGB(255,255,255),FillTransparency=0.5,OutlineColor=Color3.fromRGB(255,255,255),OutlineTransparency=0},Item={Enabled=false,AlwaysOnTop=false,FillColor=Color3.fromRGB(255,255,255),FillTransparency=0.5,OutlineColor=Color3.fromRGB(255,255,255),OutlineTransparency=0}},ViewModelWireframe={Arms={Enabled=false,Color=Color3.fromRGB(255,255,255),Width=0.0025},Item={Enabled=false,Color=Color3.fromRGB(255,255,255),Width=0.0025}},PlayerHit={Enabled=false,Sound={Enabled=false,DisableGameSound=false,HeadName=nil,BodyName=nil,HeadVolume=1,HeadPitch=1,BodyVolume=1,BodyPitch=1},Notification={Enabled=false,Text="Hit %DNAME% (%NAME%) for %DMG% in %PART%"},Chams={Enabled=false,Color=Color3.fromRGB(255,0,0),Transparency=0,Duration=0.8,Material="Ghost"},HitFlash={Enabled=false,Color=Color3.fromRGB(90,170,255),Duration=1.35}},PlayerElimination={Enabled=false,Sound={Enabled=false,Name=nil,Volume=1,Pitch=1},Notification={Enabled=false,Text="Eliminated %DNAME% (%NAME%)"},Chams={Enabled=false,Color=Color3.fromRGB(255,0,0),Transparency=0,Duration=0.8,Material="Ghost"},KillFlash={Enabled=false,Color=Color3.fromRGB(90,170,255),Duration=1.35}}};end
 
 tbl17.bk = function()
 local bk = tbl17.cache.bk
@@ -24516,7 +24617,7 @@ local function fn37(I)
     local entry = tbl18[I]
     if entry == nil then return end
     local currentImage = I.Image
-    -- If image is our spoofed image, use original as base; otherwise update original
+
     if entry.SpoofedImage ~= nil and currentImage == entry.SpoofedImage then
         currentImage = entry.OriginalImage or currentImage
     else
@@ -50376,6 +50477,7 @@ tbl18:_SetupAimCooldown(itemModifiers)
 tbl18:_SetupAnimationDisabler(itemModifiers, v126)
 tbl18:_SetupInfoModifier(itemModifiers)
 tbl18:_SetupGrenadeFuse(itemModifiers, v126)
+tbl18:_SetupFastProjectile(itemModifiers)
 return tbl18
 end
 
@@ -50540,6 +50642,39 @@ arg2:Connect(v118:GetPropertyChangedSignal({ "ItemModifiers", "GrenadeFuse", "Re
 fn36()
 fn37()
 fn38()
+end
+
+index2._SetupFastProjectile = function(arg, arg2)
+local reloadCache = setmetatable({}, { __mode = "k" })
+
+local function restore()
+for item, reloadLength in pairs(reloadCache) do
+if type(item) == "table" then pcall(v103, item, "ReloadLength", reloadLength) end
+end
+end
+
+local function apply()
+if v118.Data.ItemModifiers.FastProjectile ~= true then
+restore()
+return
+end
+pcall(function()
+local ItemLibrary = require(cloneref(game:GetService("ReplicatedStorage")).Modules.ItemLibrary)
+local Items = v102(ItemLibrary, "Items")
+if Items == nil then return end
+for _, item in pairs(Items) do
+local name = item.Name
+if (name == "Bow" or name == "Daggers" or name == "Slingshot") and v102(item, "ReloadLength") ~= nil then
+if reloadCache[item] == nil then reloadCache[item] = v102(item, "ReloadLength") end
+v103(item, "ReloadLength", name == "Daggers" and 0.09 or 0)
+end
+end
+end)
+end
+
+arg2:Connect(v118:GetPropertyChangedSignal({ "ItemModifiers", "FastProjectile" }), apply)
+arg2:Add(restore)
+apply()
 end
 
 index2.Destroy = function(arg)
@@ -59322,7 +59457,7 @@ return ic.c
 end
 end
 do
-local function fn35() tbl17 .aE();local function l(I,W,N,P,a,e)I:AddGroup({Source=I:AddToggle({Label=W,Config={"ItemModifiers",P,"Enabled"}})}):AddSlider({Label=N,Min=a,Max=e,Config={"ItemModifiers",P,"Percentage"}});end;return function(I)local W,N,P,a=I:AddSection({Title="Aim & Fire",Side="left"}),I:AddSection({Title="Cooldowns",Side="left"}),I:AddSection({Title="Melee",Side="right"}),I:AddSection({Title="Grenades",Side="right"});l(W,"Reduce Recoil","Recoil Reduction (%)","Recoil",0,100);W:AddToggle({Label="Remove Spread",Config={"ItemModifiers","NoSpread"}});W:AddToggle({Label="Automatic Fire",Config={"ItemModifiers","AutomaticWeapon"}});l(W,"Aim Speed Override","Aim Speed (%)","AimSpeed",50,500);l(N,"Fire Cooldown Override","Percentage","FireCooldown",0,100);l(N,"Aim Cooldown Override","Percentage","AimCooldown",1,100);l(N,"Melee Cooldown Override","Percentage","MeleeCooldown",0,100);l(N,"Dash Cooldown Override","Percentage","DashCooldown",0,100);P:AddToggle({Label="Always Backstab",Config={"ItemModifiers","AlwaysBackstab"}});P:AddGroup({Source=P:AddToggle({Label="Extend Melee Range",Config={"ItemModifiers","ExtendMeleeRange","Enabled"}})}):AddSlider({Label="Range",Min=5,Max=20,Config={"ItemModifiers","ExtendMeleeRange","Range"}});N=a:AddGroup({Source=a:AddToggle({Label="Fuse Override",Config={"ItemModifiers","GrenadeFuse","Enabled"}})});N:AddDropdown({Label="Explode On",Options={"Impact","Throw"},Config={"ItemModifiers","GrenadeFuse","ExplodeOn"}});N:AddToggle({Label="Remove Fuse",Config={"ItemModifiers","GrenadeFuse","RemoveFuse"}});end;end
+local function fn35() tbl17 .aE();local function l(I,W,N,P,a,e)I:AddGroup({Source=I:AddToggle({Label=W,Config={"ItemModifiers",P,"Enabled"}})}):AddSlider({Label=N,Min=a,Max=e,Config={"ItemModifiers",P,"Percentage"}});end;return function(I)local W,N,P,a=I:AddSection({Title="Aim & Fire",Side="left"}),I:AddSection({Title="Cooldowns",Side="left"}),I:AddSection({Title="Melee",Side="right"}),I:AddSection({Title="Grenades",Side="right"});l(W,"Reduce Recoil","Recoil Reduction (%)","Recoil",0,100);W:AddToggle({Label="Remove Spread",Config={"ItemModifiers","NoSpread"}});W:AddToggle({Label="Automatic Fire",Config={"ItemModifiers","AutomaticWeapon"}});W:AddToggle({Label="Fast Projectile",Config={"ItemModifiers","FastProjectile"}});l(W,"Aim Speed Override","Aim Speed (%)","AimSpeed",50,500);l(N,"Fire Cooldown Override","Percentage","FireCooldown",0,100);l(N,"Aim Cooldown Override","Percentage","AimCooldown",1,100);l(N,"Melee Cooldown Override","Percentage","MeleeCooldown",0,100);l(N,"Dash Cooldown Override","Percentage","DashCooldown",0,100);P:AddToggle({Label="Always Backstab",Config={"ItemModifiers","AlwaysBackstab"}});P:AddGroup({Source=P:AddToggle({Label="Extend Melee Range",Config={"ItemModifiers","ExtendMeleeRange","Enabled"}})}):AddSlider({Label="Range",Min=5,Max=20,Config={"ItemModifiers","ExtendMeleeRange","Range"}});N=a:AddGroup({Source=a:AddToggle({Label="Fuse Override",Config={"ItemModifiers","GrenadeFuse","Enabled"}})});N:AddDropdown({Label="Explode On",Options={"Impact","Throw"},Config={"ItemModifiers","GrenadeFuse","ExplodeOn"}});N:AddToggle({Label="Remove Fuse",Config={"ItemModifiers","GrenadeFuse","RemoveFuse"}});end;end
 
 tbl17.id = function()
 local id = tbl17.cache.id
