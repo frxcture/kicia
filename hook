@@ -18237,35 +18237,17 @@ end
 return { Page = v120, Grid = v121 }
 end
 
+local KICIA_RERUN_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
+
 local function KiciaQueueTeleport()
     local queueFn = K.fn("queue_on_teleport") or K.fn("queueonteleport")
     if type(queueFn) ~= "function" then return end
-
-    local url
-    pcall(function() url = getgenv().KiciaReRunUrl end)
-    if type(url) == "string" and url ~= "" then
-        pcall(queueFn, "loadstring(game:HttpGet('" .. url:gsub("'", "\\'") .. "'))()")
-        return
-    end
-
-    local path
-    for level = 0, 40 do
-        local ok, info = pcall(debug.getinfo, level, "S")
-        if not ok or type(info) ~= "table" then break end
-        local s = info.source or info.short_src or ""
-        if type(s) == "string" and s:sub(1, 1) == "@" then
-            local p = s:sub(2)
-            local okr, content = pcall(readfile, p)
-            if okr and type(content) == "string" and #content > 0 then
-                path = p
-                break
-            end
-        end
-    end
-    if path == nil then return end
-
-    local safe = path:gsub("\\", "\\\\"):gsub("'", "\\'")
-    pcall(queueFn, "loadstring(readfile('" .. safe .. "'), '@" .. safe .. "')()")
+    local url = KICIA_RERUN_URL
+    pcall(function()
+        local override = getgenv().KiciaReRunUrl
+        if type(override) == "string" and override ~= "" then url = override end
+    end)
+    pcall(queueFn, "loadstring(game:HttpGet('" .. url:gsub("'", "\\'") .. "'))()")
 end
 
 local function fn40(arg, arg2, arg3)
