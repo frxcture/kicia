@@ -1,3 +1,5 @@
+--!nocheck
+--!native
 if getgenv().KiciaRebuild and getgenv().KiciaRebuild.Unload then
     pcall(getgenv().KiciaRebuild.Unload)
 end
@@ -20,8 +22,8 @@ local rawget, rawset = rawget, rawset
 
 function K.fn(name)
     local v
-    pcall(function() v = getgenv()[name] end)
-    if type(v) ~= "function" then pcall(function() v = getgenv()[name] end) end
+    pcall(function() v = debug.info(0)[name] end)
+    if type(v) ~= "function" then pcall(function() v = getfenv()[name] end) end
     return type(v) == "function" and v or nil
 end
 
@@ -66489,16 +66491,23 @@ task.spawn(function()
         local _playerGui = _lp:FindFirstChild("PlayerGui")
         local _spawnedOk = _character ~= nil and _character:FindFirstChildOfClass("Humanoid") ~= nil
         local _uiOk = false
+        local _loadingDone = true
         if _playerGui then
             local _screenGuiCount = 0
             for _, _child in ipairs(_playerGui:GetChildren()) do
                 if _child:IsA("ScreenGui") then
-                    _screenGuiCount += 1
+                    if _child.Name == "LoadingScreen" then
+                        if _child.Enabled then
+                            _loadingDone = false
+                        end
+                    else
+                        _screenGuiCount += 1
+                    end
                 end
             end
             _uiOk = _screenGuiCount >= _minScreenGuis
         end
-        if _spawnedOk and _uiOk then
+        if _spawnedOk and _uiOk and _loadingDone then
             break
         end
         task.wait(1)
