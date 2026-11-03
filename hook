@@ -67013,19 +67013,27 @@ task.spawn(function()
         task.wait(1)
     end
 
+    local function _dismissLoadingScreen()
+        local _playerGui = _lp:FindFirstChild("PlayerGui")
+        if not _playerGui then return end
+        for _, _child in ipairs(_playerGui:GetChildren()) do
+            if _child:IsA("LayerCollector") and _child.Enabled then
+                pcall(function() _child.Enabled = false end)
+            end
+        end
+    end
+
     local _ok, _err = pcall(function()
         tbl17.j1()(bootFn())
     end)
     if not _ok then
         warn("[KiciaRebuild] boot error: " .. tostring(_err))
+        task.wait(1)
+        _dismissLoadingScreen()
     end
 
     task.spawn(function()
-        task.wait(60)
-        local _playerGui = _lp:FindFirstChild("PlayerGui")
-        local _loadingScreen = _playerGui and _playerGui:FindFirstChild("LoadingScreen")
-        if _loadingScreen and _loadingScreen:IsA("LayerCollector") and _loadingScreen.Enabled then
-            _loadingScreen.Enabled = false
-        end
+        task.wait(15)
+        _dismissLoadingScreen()
     end)
 end)
