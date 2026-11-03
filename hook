@@ -120,7 +120,7 @@ pcall(function()
             detour = newcclosure(detour)
         end
 
-        if not iscclosure(detour) then
+        if not (iscclosure and iscclosure(detour)) then
             detour = newcclosure(detour)
         end
 
@@ -351,7 +351,7 @@ pcall(function()
 
     if ac_event and ac_script then
         task.spawn(function()
-            local arm_deadline = tick() + 10
+            local arm_deadline = tick() + 20
             while not hijack_ready and tick() < arm_deadline do
                 task.wait()
             end
@@ -359,6 +359,10 @@ pcall(function()
                 return
             end
 
+            
+            
+            
+            task.wait(2)
             ac_script.Enabled = false
 
         ac_event.OnClientEvent:Connect(function(...)
@@ -458,7 +462,6 @@ end)
 
 end
 
-
 pcall(function()
     local lp = game:GetService("Players").LocalPlayer
     local ctrl = lp.PlayerScripts:FindFirstChild("Controllers")
@@ -501,7 +504,6 @@ pcall(function()
         end
     end
 end)
-
 
 local K: { [string]: any } = { connections = {}, cleanups = {}, destroyed = false }
 getgenv().KiciaRebuild = K
@@ -67011,7 +67013,12 @@ task.spawn(function()
         task.wait(1)
     end
 
-    tbl17.j1()(bootFn())
+    local _ok, _err = pcall(function()
+        tbl17.j1()(bootFn())
+    end)
+    if not _ok then
+        warn("[KiciaRebuild] boot error: " .. tostring(_err))
+    end
 
     task.spawn(function()
         task.wait(60)
