@@ -66956,84 +66956,83 @@ function K.Unload()
 end
 
 task.spawn(function()
-    local _players = game:GetService("Players")
-    local _waitStart = os.clock()
-    while not _players.LocalPlayer and os.clock() - _waitStart < 60 do
+    local pl = game:GetService("Players")
+    local ws = os.clock()
+    while not pl.LocalPlayer and os.clock() - ws < 60 do
         task.wait()
     end
-    local _lp = _players.LocalPlayer
-    if not _lp then
+    local lp = pl.LocalPlayer
+    if not lp then
         warn("[Kicia Rebuild] ABORTED: no LocalPlayer after 60s")
         return
     end
 
-    local _playerScripts = _lp:FindFirstChild("PlayerScripts")
-    if not _playerScripts then
-        pcall(function() _lp:WaitForChild("PlayerScripts", 60) end)
-        _playerScripts = _lp:FindFirstChild("PlayerScripts")
+    local ps = lp:FindFirstChild("PlayerScripts")
+    if not ps then
+        pcall(function() lp:WaitForChild("PlayerScripts", 60) end)
+        ps = lp:FindFirstChild("PlayerScripts")
     end
-    if not _playerScripts then
+    if not ps then
         warn("[Kicia Rebuild] ABORTED: no PlayerScripts")
         return
     end
 
-    if not _playerScripts:FindFirstChild("Controllers") then
-        pcall(function() _playerScripts:WaitForChild("Controllers", 60) end)
+    if not ps:FindFirstChild("Controllers") then
+        pcall(function() ps:WaitForChild("Controllers", 60) end)
     end
 
-    local _uis = game:GetService("UserInputService")
-    local _touch = _uis.TouchEnabled and not _uis.KeyboardEnabled
-    local _minScreenGuis = _touch and 1 or 2
+    local ui = game:GetService("UserInputService")
+    local tc = ui.TouchEnabled and not ui.KeyboardEnabled
+    local msg = tc and 1 or 2
 
-    local _aliveStart = os.clock()
-    while os.clock() - _aliveStart < 45 do
-        local _character = _lp.Character
-        local _playerGui = _lp:FindFirstChild("PlayerGui")
-        local _spawnedOk = _character ~= nil and _character:FindFirstChildOfClass("Humanoid") ~= nil
-        local _uiOk = false
-        local _loadingDone = true
-        if _playerGui then
-            local _screenGuiCount = 0
-            for _, _child in ipairs(_playerGui:GetChildren()) do
-                if _child:IsA("ScreenGui") then
-                    if _child.Name == "LoadingScreen" then
-                        if _child.Enabled then
-                            _loadingDone = false
+    local as = os.clock()
+    while os.clock() - as < 45 do
+        local ch = lp.Character
+        local pg = lp:FindFirstChild("PlayerGui")
+        local sp = ch ~= nil and ch:FindFirstChildOfClass("Humanoid") ~= nil
+        local uo = false
+        local ld = true
+        if pg then
+            local sc = 0
+            for _, c in ipairs(pg:GetChildren()) do
+                if c:IsA("ScreenGui") then
+                    if c.Name == "LoadingScreen" then
+                        if c.Enabled then
+                            ld = false
                         end
                     else
-                        _screenGuiCount += 1
+                        sc += 1
                     end
                 end
             end
-            _uiOk = _screenGuiCount >= _minScreenGuis
+            uo = sc >= msg
         end
-        if _spawnedOk and _uiOk and _loadingDone then
+        if sp and uo and ld then
             break
         end
         task.wait(1)
     end
 
-    local function _dismissLoadingScreen()
-        local _playerGui = _lp:FindFirstChild("PlayerGui")
-        if not _playerGui then return end
-        for _, _child in ipairs(_playerGui:GetChildren()) do
-            if _child:IsA("LayerCollector") and _child.Enabled then
-                pcall(function() _child.Enabled = false end)
+    local function dls()
+        local pg = lp:FindFirstChild("PlayerGui")
+        if not pg then return end
+        for _, c in ipairs(pg:GetChildren()) do
+            if c:IsA("LayerCollector") and c.Enabled then
+                pcall(function() c.Enabled = false end)
             end
         end
     end
 
-    local _ok, _err = pcall(function()
+    local ok, er = pcall(function()
         tbl17.j1()(bootFn())
     end)
-    if not _ok then
-        warn("[KiciaRebuild] boot error: " .. tostring(_err))
+    if not ok then
+        warn("[KiciaRebuild] boot error: " .. tostring(er))
         task.wait(1)
-        _dismissLoadingScreen()
+        dls()
+        task.spawn(function()
+            task.wait(15)
+            dls()
+        end)
     end
-
-    task.spawn(function()
-        task.wait(15)
-        _dismissLoadingScreen()
-    end)
 end)
