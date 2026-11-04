@@ -18250,7 +18250,7 @@ end
 return { Page = v120, Grid = v121 }
 end
 
-local KICIA_RERUN_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/hook"
+local KICIA_RERUN_URL = "https://raw.githubusercontent.com/frxcture/kicia/refs/heads/main/kiciahook"
 
 local function KiciaQueueTeleport()
     local queueFn = K.fn("queue_on_teleport") or K.fn("queueonteleport")
