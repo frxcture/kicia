@@ -66967,50 +66967,24 @@ task.spawn(function()
         return
     end
 
-    local ps = lp:FindFirstChild("PlayerScripts")
-    if not ps then
-        pcall(function() lp:WaitForChild("PlayerScripts", 60) end)
-        ps = lp:FindFirstChild("PlayerScripts")
-    end
-    if not ps then
-        warn("[Kicia Rebuild] ABORTED: no PlayerScripts")
-        return
-    end
-
-    if not ps:FindFirstChild("Controllers") then
-        pcall(function() ps:WaitForChild("Controllers", 60) end)
-    end
-
-    local ui = game:GetService("UserInputService")
-    local tc = ui.TouchEnabled and not ui.KeyboardEnabled
-    local msg = tc and 1 or 2
-
     local as = os.clock()
-    while os.clock() - as < 45 do
+    while os.clock() - as < 60 do
         local ch = lp.Character
         local pg = lp:FindFirstChild("PlayerGui")
         local sp = ch ~= nil and ch:FindFirstChildOfClass("Humanoid") ~= nil
-        local uo = false
         local ld = true
         if pg then
-            local sc = 0
             for _, c in ipairs(pg:GetChildren()) do
-                if c:IsA("ScreenGui") then
-                    if c.Name == "LoadingScreen" then
-                        if c.Enabled then
-                            ld = false
-                        end
-                    else
-                        sc += 1
-                    end
+                if c:IsA("ScreenGui") and c.Name == "LoadingScreen" and c.Enabled then
+                    ld = false
+                    break
                 end
             end
-            uo = sc >= msg
         end
-        if sp and uo and ld then
+        if sp and ld then
             break
         end
-        task.wait(1)
+        task.wait(0.5)
     end
 
     local function dls()
