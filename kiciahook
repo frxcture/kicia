@@ -17825,6 +17825,7 @@ return visible
 end
 
 index2.Notify = function(arg, arg2, arg3)
+if setthreadidentity then setthreadidentity(6) end
 if arg._destroyed or not arg:_Get("Enabled") then
 return
 end
@@ -53317,7 +53318,9 @@ if notification.Enabled then
 local v124, v125 = v123(arg4)
 local str7 = notification.Text:gsub("%%(%w+)%%", { NAME = v124, DNAME = v125, PART = arg3 })
 
+local _spawnId = getthreadidentity and getthreadidentity() or 6
 task.spawn(function()
+if setthreadidentity then setthreadidentity(_spawnId) end
 v119.get():Notify(v119.template(str7, { DMG = fn36(arg2) }))
 end)
 end
