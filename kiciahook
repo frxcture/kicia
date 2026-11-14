@@ -31727,11 +31727,11 @@ local bindingsByEnum = arg._bindingsByEnum
 v103(replicatedController, "_ObjectChanged", function(arg2, arg3, arg4, ...)
 local v120 = bindingsByEnum[arg4]
 if v120 == nil or type(arg3) ~= "string" then
-return coroutine.wrap(v119)(arg2, arg3, arg4, ...)
+return v119(arg2, arg3, arg4, ...)
 end
 local v121 = v117.decode(arg4)
 if v121 == nil then
-return coroutine.wrap(v119)(arg2, arg3, arg4, ...)
+return v119(arg2, arg3, arg4, ...)
 end
 local tbl18 = { Block = false, ObjectId = arg3, EnumName = v121, Args = table.pack(...) }
 local v122 = getthreadidentity()
@@ -31758,7 +31758,7 @@ local args = tbl18.Args
 local v123 = unpack
 local v124 = v86[63]
 local n = args.n
-return coroutine.wrap(v119)(arg2, arg3, arg4, v123(args, v124, n))
+return v119(arg2, arg3, arg4, v123(args, v124, n))
 end)
 
 arg._restore = { Method = v119 }
@@ -38964,8 +38964,16 @@ if type(v126) ~= "table" then
 v126 = debug.getstack(v86[56], 2)
 end
 
-local viewModel = v102(v126[1], "ViewModel")
-local player = v102(v102(arg2, "ClientFighter"), "Player")
+if type(v126) ~= "table" then
+return
+end
+
+local viewModel = v102(type(v126[1]) == "table" and v126[1] or nil, "ViewModel")
+local clientFighterRef = v102(arg2, "ClientFighter")
+if clientFighterRef == nil then
+return
+end
+local player = v102(clientFighterRef, "Player")
 local name = v102(arg2, "Name")
 
 if player == localPlayer then
@@ -38973,6 +38981,9 @@ arg.ViewModelCreated:Fire(name)
 end
 
 local v127 = arg._store:Get(player, name)
+if viewModel == nil then
+return
+end
 local v128 = viewModel[v116.encode("Data")]
 local flag19 = arg._rankPatchActive and player == localPlayer and (v127 == nil or v127.Charm == nil)
 local v129 = nil
