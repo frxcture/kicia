@@ -31734,8 +31734,8 @@ if v121 == nil then
 return v119(arg2, arg3, arg4, ...)
 end
 local tbl18 = { Block = false, ObjectId = arg3, EnumName = v121, Args = table.pack(...) }
-local v122 = getthreadidentity()
-setthreadidentity(8)
+local v122 = getthreadidentity and getthreadidentity() or nil
+pcall(setthreadidentity, 8)
 
 for _, v123 in v120, nil, nil do
 if v123.Enabled and v123.Handler then
@@ -31750,7 +31750,7 @@ end
 break
 end
 
-setthreadidentity(v122)
+if v122 ~= nil then pcall(setthreadidentity, v122) end
 if tbl18.Block then
 return
 end
@@ -38969,15 +38969,18 @@ return
 end
 
 local viewModel = v102(type(v126[1]) == "table" and v126[1] or nil, "ViewModel")
+local name = v102(arg2, "Name")
 local clientFighterRef = v102(arg2, "ClientFighter")
+local player = clientFighterRef ~= nil and v102(clientFighterRef, "Player") or nil
+
+-- Fire ViewModelCreated regardless of whether ClientFighter is resolved yet;
+-- cosmetic application via this event doesn't require the fighter reference.
+if player == localPlayer or player == nil then
+arg.ViewModelCreated:Fire(name)
+end
+
 if clientFighterRef == nil then
 return
-end
-local player = v102(clientFighterRef, "Player")
-local name = v102(arg2, "Name")
-
-if player == localPlayer then
-arg.ViewModelCreated:Fire(name)
 end
 
 local v127 = arg._store:Get(player, name)
