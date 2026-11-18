@@ -38455,34 +38455,57 @@ return
 end
 v103(arg2, "Info", arg4)
 setmetatable(arg2, v125)
-local v126 = debug.getstack(2, v86[63])
-
-if type(v126) ~= "table" then
-v126 = debug.getstack(v86[56], 2)
+-- Season 4 fix: the stack slot that held the item table is now a number, so `v126[1]` threw
+-- "attempt to index number with number" inside the game's ReplicatedController. Look for the view model
+-- defensively (old slot shapes first, then a scan of the caller frames) and never throw into game code.
+local function viewModelFrom(v)
+if type(v) ~= "table" then return nil end
+local ok1, first = v107(function() return v102(v, 1) end)
+if ok1 and type(first) == "table" then
+local okVm, vm = v107(function() return v102(first, "ViewModel") end)
+if okVm and type(vm) == "table" then
+local okD, d = v107(function() return vm[v116.encode("Data")] end)
+if okD and type(d) == "table" then return vm end
 end
-
-if type(v126) ~= "table" then
-return
 end
-
-local viewModel = v102(type(v126[1]) == "table" and v126[1] or nil, "ViewModel")
+local okVm2, vm2 = v107(function() return v102(v, "ViewModel") end)
+if okVm2 and type(vm2) == "table" then
+local okD2, d2 = v107(function() return vm2[v116.encode("Data")] end)
+if okD2 and type(d2) == "table" then return vm2 end
+end
+return nil
+end
+local viewModel = nil
+do
+local okA, slotA = v107(debug.getstack, 2, v86[63])
+if okA then viewModel = viewModelFrom(slotA) end
+if viewModel == nil then
+local okB, slotB = v107(debug.getstack, v86[56], 2)
+if okB then viewModel = viewModelFrom(slotB) end
+end
+if viewModel == nil then
+for level = 1, 6 do
+local okS, stack = v107(debug.getstack, level)
+if okS and type(stack) == "table" then
+for _, v in pairs(stack) do
+viewModel = viewModelFrom(v)
+if viewModel ~= nil then break end
+end
+end
+if viewModel ~= nil then break end
+end
+end
+end
+if viewModel == nil then return end
+local okBody, errBody = v107(function()
+local player = v102(v102(arg2, "ClientFighter"), "Player")
 local name = v102(arg2, "Name")
-local clientFighterRef = v102(arg2, "ClientFighter")
-local player = clientFighterRef ~= nil and v102(clientFighterRef, "Player") or nil
 
-
-if player == localPlayer or player == nil then
+if player == localPlayer then
 arg.ViewModelCreated:Fire(name)
 end
 
-if clientFighterRef == nil then
-return
-end
-
 local v127 = arg._store:Get(player, name)
-if viewModel == nil then
-return
-end
 local v128 = viewModel[v116.encode("Data")]
 local flag19 = arg._rankPatchActive and player == localPlayer and (v127 == nil or v127.Charm == nil)
 local v129 = nil
@@ -38514,6 +38537,11 @@ end
 
 if v129 ~= nil then
 v128[v116.encode("Charm")] = v129
+end
+end)
+if not okBody and not arg._warnedBody then
+arg._warnedBody = true
+warn("[Kicia] ViewModel hook skipped: " .. tostring(errBody))
 end
 end,
 }
@@ -54557,16 +54585,55 @@ local function fn36(arg)
 local tbl18 = {}
 local tbl19 = {}
 local model = v102(v102(arg, "ViewModel"), "Model")
+if model == nil then
+return { Items = tbl18, Arms = tbl19 }
+end
 
-for _, v118 in model:GetChildren() do
+local function lower(s) return string.lower(tostring(s)) end
+local function isArmName(name)
+local n = lower(name)
+if n == "leftarm" or n == "rightarm" then return true end
+if n == "leftitem" or n == "rightitem" then return true end
+if n:find("arm", 1, true) ~= nil then return true end
+if n:find("glove", 1, true) ~= nil then return true end
+if n:find("sleeve", 1, true) ~= nil then return true end
+return false
+end
+local function isIgnoredName(name)
+local n = lower(name)
+return n == "camera" or n == "humanoidrootpart" or n == "charmholder"
+    or n:find("charm", 1, true) ~= nil
+end
+
+-- Arms: LeftArm / RightArm anywhere in the tree.
+-- Items: every other part/model under the viewmodel that isn't a known
+-- helper. This covers ItemVisual plus skins that hang geometry off
+-- RightItem/LeftItem or their own named roots.
+local function scan(node, inArm)
+for _, v118 in node:GetChildren() do
 local name = v118.Name
 
-if name == "ItemVisual" then
-table.insert(tbl18, v118)
-elseif name == "LeftArm" or name == "RightArm" then
+if isIgnoredName(name) then
+-- skip helpers
+elseif isArmName(name) then
 table.insert(tbl19, v118)
+elseif v118:IsA("BasePart") then
+if inArm then
+table.insert(tbl19, v118)
+else
+table.insert(tbl18, v118)
+end
+elseif v118:IsA("Model") or v118:IsA("Folder") then
+if lower(name) == "itemvisual" then
+table.insert(tbl18, v118)
+else
+scan(v118, inArm)
 end
 end
+end
+end
+
+scan(model, false)
 
 return { Items = tbl18, Arms = tbl19 }
 end
