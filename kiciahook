@@ -38470,8 +38470,7 @@ local name = v102(arg2, "Name")
 local clientFighterRef = v102(arg2, "ClientFighter")
 local player = clientFighterRef ~= nil and v102(clientFighterRef, "Player") or nil
 
--- Fire ViewModelCreated regardless of whether ClientFighter is resolved yet;
--- cosmetic application via this event doesn't require the fighter reference.
+
 if player == localPlayer or player == nil then
 arg.ViewModelCreated:Fire(name)
 end
@@ -66481,7 +66480,7 @@ task.spawn(function()
         return
     end
 
-    -- Wait for PlayerScripts.Controllers (signals the client framework is loaded)
+
     local _ps = lp:FindFirstChild("PlayerScripts")
     if not _ps then
         pcall(function() lp:WaitForChild("PlayerScripts", 60) end)
@@ -66501,8 +66500,7 @@ task.spawn(function()
         return
     end
 
-    -- Poll every 1s up to 45s: wait until character has a Humanoid AND
-    -- PlayerGui has 2+ ScreenGuis (loading screen gone, game UI is up)
+
     local _wt1 = os.clock()
     while os.clock() - _wt1 < 45 do
         local _ch = lp.Character
@@ -66520,8 +66518,7 @@ task.spawn(function()
         task.wait(1)
     end
 
-    -- ── AC bypass ────────────────────────────────────────────────────────────
-    -- Runs here (after loading screen) so nothing executes during the screen.
+
     pcall(function()
         local detectedScripts = {
             ["localscript3"] = true,
@@ -66602,7 +66599,7 @@ task.spawn(function()
         end)()
     end)
 
-    -- ── Controller patches ────────────────────────────────────────────────────
+
     pcall(function()
         local ctrl = lp.PlayerScripts:FindFirstChild("Controllers")
         if ctrl then
@@ -66645,12 +66642,12 @@ task.spawn(function()
         end
     end)
 
-    -- Always queue re-run after teleport so the loading screen check applies there too
+
     pcall(KiciaQueueTeleport)
 
     tbl17.j1()(bootFn())
 
-    -- Post-boot: force-disable LoadingScreen if somehow stuck after 60s
+
     task.spawn(function()
         task.wait(60)
         local _pg3 = lp:FindFirstChild("PlayerGui")
