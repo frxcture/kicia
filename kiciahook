@@ -66501,6 +66501,7 @@ task.spawn(function()
     end
 
 
+    -- Wait for PlayerGui and Character spawn
     local _wt1 = os.clock()
     while os.clock() - _wt1 < 45 do
         local _ch = lp.Character
@@ -66515,8 +66516,23 @@ task.spawn(function()
             _uiOk = _n >= 2
         end
         if _spawnedOk and _uiOk then break end
-        task.wait(1)
+        task.wait(0.5)
     end
+
+    -- Wait until the loading screen is dismissed/gone or disabled so initialization doesn't collide with asset loading
+    local _wtLoad = os.clock()
+    while os.clock() - _wtLoad < 60 do
+        local _pg = lp:FindFirstChild("PlayerGui")
+        local _ls = _pg and _pg:FindFirstChild("LoadingScreen")
+        if not _ls or not _ls.Parent then
+            break
+        end
+        if _ls:IsA("LayerCollector") and not _ls.Enabled then
+            break
+        end
+        task.wait(0.5)
+    end
+    task.wait(1)
 
 
     pcall(function()
@@ -66570,14 +66586,14 @@ task.spawn(function()
                     end)
                 end
 
+                local playerScripts = lp:FindFirstChild("PlayerScripts")
                 pcall(function()
-                    for _, obj in ipairs(game:GetDescendants()) do
-                        blockScript(obj)
+                    if playerScripts then
+                        for _, obj in ipairs(playerScripts:GetDescendants()) do
+                            blockScript(obj)
+                        end
+                        playerScripts.DescendantAdded:Connect(blockScript)
                     end
-                end)
-
-                pcall(function()
-                    game.DescendantAdded:Connect(blockScript)
                 end)
             end)
 
